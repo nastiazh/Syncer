@@ -1,0 +1,74 @@
+Sync command.
+request	{"command":"sync", "folder":"path"}
+answer	{"files":
+			[
+				"path1": <int_edittime>,
+				"path2": <int_edittime>,
+				"path3": <int_edittime>,
+				"path4": <int_edittime>,
+				"path5": <int_edittime>
+			]
+		}
+
+
+Receiving file from server
+request {
+			"command":"get",
+			"file":"path1"
+		}
+answer	{
+			"response":"OK"|"NOT_EXIST",
+			"filesize":<size_in_bytes>
+		}
+if NOT_EXIST - break
+else
+...client receive file...
+answer	{
+			"status":"DONE"
+		}
+
+
+Sending file to server:
+request	{
+			"command":"send",
+			"filename":"path1",
+			"filesize":<size_in_bytes>,
+			"filetime":<int_seconds>
+		}
+answer	{"response":"OK"}
+...server receive file...
+request	{
+			"status":"DONE"
+		}
+
+Deleting file from server:
+request	{
+			"command":"delete",
+			"file":"path"
+		}
+answer	{
+			"response":"OK"|"ServerException"
+		}
+
+
+Closing connection:
+request	{
+			"command":"bye"
+		}
+answer	{
+			"response":"bye"
+		}
+
+upd_v1.0 (Basic principles of Syncer)
+On sturtup load our filesystem in json filestructure, then run sync function wich return us filestructure from server.
+Check each element from server response, if edition time same, remove this file from our filestructure, if server
+has newer file push it to get array, if our file newer - push it back to our filestructure.
+Then send our filestructure to the server, server update his filestructure. Then get all files from server (it saves in get array).
+This was a startup sync process. Now I going to tell you about working process.
+When sync finished, reload our model and check files in it every 0.5 second. If our file edition time higher then in our filestructure
+add it to push array and update edition time in our filestructure. In end of serching push to server our files.
+Second part where we get files from server in realtime will be later...
+
+upd_v1.1 (What to do if file was removed?)
+Store client filestructure in json format saved in file. When load program build tree and compare it with saved. If file is in saved structure
+but not in builded remove it. If json file not exist - built file tree and save it in file.

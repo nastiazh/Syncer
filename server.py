@@ -1,29 +1,57 @@
-import socketserver
-import json
+import socket
+import os
+import os.path as Path
+from syncercore import File
+from syncercore import Socket
 
-class TcpFileHandler(socketserver.BaseRequestHandler):
-    def handle(self):
-        print('handle request!')
-        headers = self.request.recv(1024).decode('utf-8')
-        headers = json.loads(headers)
-        print(headers['name'])
-        #send acception
-        self.request.sendall(b'OK')
-        #receive file
-        file_stream = open(headers['name'],'wb+')
-        real_size = 0
-        while real_size < headers['size']:
-            buff = self.request.recv(1024)
-            file_stream.write(buff)
-            file_stream.flush()
-            real_size += len(buff)
-        print(headers['name']+' received')
-        self.request.sendall("test done!".encode('utf-8'))
 
-if __name__ == '__main__':
-    try:
-        server = socketserver.TCPServer(('',1234), TcpFileHandler)
-        print('server created!')
-        server.serve_forever()
-    except KeyboardInterrupt:
-        print('bye!')
+sock = socket.socket()
+sock.bind(('',1234))
+sock.listen(10)
+print('Server started!')
+while True:
+	#try:
+		client, addr = sock.accept()
+		print('Connected from '+str(addr))
+		command = 'start'
+		while command:
+			command = Socket.receive_command(client)
+			print('Received command: '+str(command))
+			
+			if command['command'] == 'sync':
+				files = File.build_tree(command['folder'],{})
+				Socket.send_command(client, {"files":files})
+				
+			elif command['command'] == 'get':
+				print('Send '+command['file'],end='')
+				if Path.exists(command['file']):
+					Socket.send_command(client,{'response':'OK', 'filesize':Path.getsize(command['file'])})
+					Socket.upload_file(client, command['file'])
+					print(Socket.receive_command(client)['status'])
+				else:
+					Socket.send_command(client,{'response':'NOT_EXIST'})	
+				
+			elif command['command'] == 'send':
+				print('Receive '+command['filename'],end='')
+				Socket.send_command(client,{'response':'OK'})
+				Socket.download_file(client, command['filename'], command['filesize'], command['filetime'])
+				Socket.send_command(client,{'status':'DONE'})
+			
+			elif command['command'] == 'delete':
+				try:
+					os.unlink(command['file'])
+					Socket.send_command(client, {'response':'OK'})
+				except Exception:
+					Socket.send_command(client, {'response':'ServerException'})
+			
+			elif command['command'] == 'bye':
+				Socket.send_command(client,{'response':'bye'})
+				client.close()
+				command = None
+			
+			else:
+				Socket.send_command(sock,{'response':'UnknownCommand'})
+		
+		print('\n')
+	#except Exception:
+	#	print('An exception occured!!!')
