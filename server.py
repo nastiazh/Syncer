@@ -10,9 +10,10 @@ sock.bind(('',1234))
 sock.listen(10)
 print('Server started!')
 while True:
-	#try:
+	try:
 		client, addr = sock.accept()
 		print('Connected from '+str(addr))
+		#create variable for while
 		command = 'start'
 		while command:
 			command = Socket.receive_command(client)
@@ -53,5 +54,5 @@ while True:
 				Socket.send_command(sock,{'response':'UnknownCommand'})
 		
 		print('\n')
-	#except Exception:
-	#	print('An exception occured!!!')
+	except Exception:
+		print('An exception occured!!!')

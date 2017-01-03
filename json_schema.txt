@@ -60,15 +60,16 @@ answer	{
 		}
 
 upd_v1.0 (Basic principles of Syncer)
-On sturtup load our filesystem in json filestructure, then run sync function wich return us filestructure from server.
-Check each element from server response, if edition time same, remove this file from our filestructure, if server
-has newer file push it to get array, if our file newer - push it back to our filestructure.
-Then send our filestructure to the server, server update his filestructure. Then get all files from server (it saves in get array).
-This was a startup sync process. Now I going to tell you about working process.
-When sync finished, reload our model and check files in it every 0.5 second. If our file edition time higher then in our filestructure
-add it to push array and update edition time in our filestructure. In end of serching push to server our files.
-Second part where we get files from server in realtime will be later...
+On sturtup create new instance of Syncer(see syncercore.py). This class have method sync() which allow us to fully sync folder.
+First call Sync.removing_sync(). It read files from modelfile and built new model from folder.Then they are compared and if file in model
+doesn't exist in just built model send command to server to remove it.
+Next call Sync.sync_local() which syncronize folder with the server. It's work in this way:
+first we send 'sync' command to server and folder we need to sync. In response receive list of files. Then it compares with local
+filestrucure.If localfile doesn't have this file add it to download_list, otherwise compare edition time. If local file newer than
+server file add it to upload_list, if server file newer than local add it to download_list, if time the same - do nothing. In all of
+this three cases remove file from list of local files. After cycle extend upload_list remained local files(this mean that they aren't in server).
+Than just download it using functions from Socket class.
 
 upd_v1.1 (What to do if file was removed?)
-Store client filestructure in json format saved in file. When load program build tree and compare it with saved. If file is in saved structure
-but not in builded remove it. If json file not exist - built file tree and save it in file.
+Store filestructure in json format saved in file. When syncronize build current filestructure and compare it with saved.
+If file is in saved structure but not in built - remove it from server. If json file not exist - built file tree and save it in file.
